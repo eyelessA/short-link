@@ -3,7 +3,10 @@
 namespace App\Services\Link;
 
 use App\Models\Link;
+use App\Models\LinkStats;
 use App\Models\LinkUser;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 
 class LinkService
 {
@@ -70,5 +73,29 @@ class LinkService
         }
 
         return $number;
+    }
+
+    public function redirectToOriginal(string $url, int $userId): RedirectResponse|JsonResponse
+    {
+        $short = Link::query()->where('short', $url)->firstOrFail();
+        $exist = LinkUser::query()
+            ->where('link_id', $short->id)
+            ->where('user_id', $userId)
+            ->first();
+
+        if (!$exist) {
+            return response()->json(['message' => 'У вас нет доступа к этой ссылке'], 403);
+        }
+        $this->logStats($short->id);
+        return redirect($short->original);
+    }
+
+    public function logStats(int $LinkId): void
+    {
+        LinkStats::query()->create([
+            'link_id' => $LinkId,
+            'ip_address' => request()->ip(),
+            'user_agent' => request()->userAgent(),
+        ]);
     }
 }
