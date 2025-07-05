@@ -5,8 +5,10 @@ namespace App\Services\Link;
 use App\Models\Link;
 use App\Models\LinkStats;
 use App\Models\LinkUser;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Collection;
 
 class LinkService
 {
@@ -44,6 +46,34 @@ class LinkService
         return ['message' => 'Такая ссылка была сокращена ранее.'];
     }
 
+    public function index(Authenticatable|null $user): Collection
+    {
+        $links = $user->links->toArray();
+        $linkIds = array_column($links, 'link_id');
+
+        return Link::query()
+            ->whereIn('id', $linkIds)
+            ->get();
+    }
+
+    public function destroy(int $userId, int $linkId): void
+    {
+        LinkUser::query()
+            ->where('user_id', $userId)
+            ->where('link_id', $linkId)
+            ->delete();
+    }
+
+    public function show(int $userId, int $linkId)
+    {
+        $link = LinkUser::query()
+            ->where('user_id', $userId)
+            ->where('link_id', $linkId)
+            ->firstOrFail();
+
+        return Link::query()->find($link->link_id);
+    }
+
     protected function encodeBase62(int $number): string
     {
         if ($number === 0) {
@@ -75,18 +105,23 @@ class LinkService
         return $number;
     }
 
-    public function redirectToOriginal(string $url, int $userId): RedirectResponse|JsonResponse
+    public function redirectToOriginal(string $url, ?int $userId = null): RedirectResponse|JsonResponse
     {
         $short = Link::query()->where('short', $url)->firstOrFail();
-        $exist = LinkUser::query()
-            ->where('link_id', $short->id)
-            ->where('user_id', $userId)
-            ->first();
 
-        if (!$exist) {
-            return response()->json(['message' => 'У вас нет доступа к этой ссылке'], 403);
+        if ($userId) {
+            $exist = LinkUser::query()
+                ->where('link_id', $short->id)
+                ->where('user_id', $userId)
+                ->first();
+
+            if (!$exist) {
+                return response()->json(['message' => 'У вас нет доступа к этой ссылке'], 403);
+            }
         }
+
         $this->logStats($short->id);
+
         return redirect($short->original);
     }
 
