@@ -7,6 +7,7 @@ use App\Http\Requests\Link\StoreRequest;
 use App\Services\Link\LinkService;
 use Exception;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -38,6 +39,19 @@ class LinkController extends Controller
                 'message' => 'Произошла ошибка при сокращении ссылки.',
                 'error' => $e->getMessage(),
             ], 500);
+        }
+    }
+
+    public function redirectToOriginal(string $short): JsonResponse|RedirectResponse
+    {
+        $userId = Auth::id();
+        try {
+            return $this->linkService->redirectToOriginal($short, $userId);
+        } catch (Exception $e) {
+            return response()->json([
+                'message' => 'У вас нет сохраненных ссылок',
+                'error' => $e->getMessage(),
+            ], 404);
         }
     }
 }
