@@ -14,5 +14,7 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/links', [LinkController::class, 'store']);
-    Route::get('/links/{short}', [LinkController::class, 'redirectToOriginal']);
+    Route::get('/links', [LinkController::class, 'index']);
+    Route::delete('/links/{id}', [LinkController::class, 'destroy']);
+    Route::get('/links/{id}', [LinkController::class, 'show']);
 });
