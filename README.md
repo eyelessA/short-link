@@ -5,4 +5,7 @@
 ## Разворачивание
 1. Склонируйте репозиторий.
 2. Скопируйте `.env.example` в `.env`.
-3. Выполните команду `docker-compose up -d`.
+3. `composer install`.
+4. `php artisan key:generate`.
+5.  `docker-compose up -d`.
+6.  `php artisan migrate --seed`.
